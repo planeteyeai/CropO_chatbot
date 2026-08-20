@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CropO AI - Farmer & Plot Agronomic Assistant</title>
+  <meta name="description" content="FastAPI Chatbot Backend with Offline Plot-Scoped Telemetry Pre-fetching & Redis Hot Cache" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Plot Selection Modal (Shown if no plot selected or on switch) -->
+  <div class="modal-overlay" id="plot-modal">
+    <div class="plot-selector-card">
+      <div class="modal-header">
+        <div class="modal-brand">🌱</div>
+        <div>
+          <h2>Enter Plot ID</h2>
+          <p>Enter your farm plot ID to pre-fetch live satellite & IoT telemetry.</p>
+        </div>
+      </div>
+
+      <form id="plot-select-form" class="modal-form">
+        <div class="form-group">
+          <label for="plot-id-input">Plot ID</label>
+          <input 
+            type="text" 
+            id="plot-id-input" 
+            placeholder="e.g. 1, 2, 3, F-5939" 
+            autocomplete="off" 
+            required 
+            autofocus 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="language-select">Preferred Language / भाषा निवडा / भाषा चुनें / ಭಾಷೆ</label>
+          <select id="language-select" class="custom-select">
+            <option value="en" selected>English (Default)</option>
+            <option value="hi">हिंदी (Hindi)</option>
+            <option value="mr">मराठी (Marathi)</option>
+            <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          </select>
+        </div>
+
+        <button type="submit" id="load-plot-btn" class="primary-btn">
+          <span id="load-btn-text">Connect & Load Telemetry</span>
+          <span id="load-btn-spinner" class="spinner hidden"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Sidebar / Plot & Cache Monitor Panel -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-logo">🌱</div>
+          <div class="brand-text">
+            <h2>CropO AI</h2>
+            <span class="badge offline-badge">Decoupled Pre-Fetch</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Plot Summary Card -->
+      <section class="active-plot-card" id="active-plot-card">
+        <div class="plot-card-header">
+          <div class="plot-title-box">
+            <span class="plot-badge" id="sidebar-plot-badge">No Plot</span>
+            <h3 id="sidebar-crop-title">Enter Plot ID</h3>
+          </div>
+          <button id="switch-plot-btn" class="switch-plot-btn" title="Switch Plot / Farmer">Set Plot</button>
+        </div>
+
+        <div class="plot-details-list">
+          <div class="detail-row">
+            <span class="lbl">Area:</span>
+            <span class="val" id="sidebar-area">--</span>
+          </div>
+          <div class="detail-row">
+            <span class="lbl">Planted:</span>
+            <span class="val" id="sidebar-planted">--</span>
+          </div>
+          <div class="detail-row">
+            <span class="lbl">Irrigation:</span>
+            <span class="val" id="sidebar-irrigation">--</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cache Pipeline Monitor -->
+      <section class="cache-monitor-card">
+        <div class="card-header">
+          <div class="title-with-dot">
+            <span class="status-dot online" id="redis-dot"></span>
+            <h3>Telemetry Cache</h3>
+          </div>
+          <button id="refresh-telemetry-btn" class="icon-btn" title="Re-fetch Plot Telemetry">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="domain-list" id="plot-telemetry-list">
+          <div class="domain-card">
+            <div class="domain-card-header">
+              <div class="domain-name">💧 Soil Moisture</div>
+              <span class="domain-tag" id="status-soil-val">--</span>
+            </div>
+          </div>
+          <div class="domain-card">
+            <div class="domain-card-header">
+              <div class="domain-name">📊 Health Score</div>
+              <span class="domain-tag" id="status-score-val">--</span>
+            </div>
+          </div>
+          <div class="domain-card">
+            <div class="domain-card-header">
+              <div class="domain-name">🌦️ Weather & Temp</div>
+              <span class="domain-tag" id="status-weather-val">--</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture Guarantee Card -->
+      <section class="guarantee-card">
+        <div class="guarantee-title">
+          <span class="shield-icon">🛡️</span>
+          <h4>Zero External API Guarantee</h4>
+        </div>
+        <p>Chat responses are strictly served from the pre-fetched Redis hot cache for the active plot with zero network latency.</p>
+      </section>
+    </aside>
+
+    <!-- Main Chat Experience -->
+    <main class="chat-container">
+      <header class="chat-header">
+        <div class="header-info">
+          <h1 id="header-plot-heading">Agronomic Assistant</h1>
+          <p id="header-plot-subheading">Enter a Plot ID to load live crop insights, soil moisture, and weather telemetry.</p>
+        </div>
+        <div class="header-pills">
+          <div class="lang-selector-pill" title="Switch Conversation Language">
+            <span class="lang-icon">🌐</span>
+            <select id="header-lang-select" class="header-lang-dropdown">
+              <option value="en" selected>English</option>
+              <option value="hi">हिंदी</option>
+              <option value="mr">मराठी</option>
+              <option value="kn">ಕನ್ನಡ</option>
+            </select>
+          </div>
+          <button id="header-switch-btn" class="pill-btn">🔄 Switch Plot</button>
+          <span class="pill">⚡ SSE Streaming</span>
+          <span class="pill">🔒 Grounded Prompting</span>
+        </div>
+      </header>
+
+      <!-- Chat Messages Scroll Area -->
+      <div class="messages-viewport" id="messages-viewport">
+        <div class="message assistant-msg">
+          <div class="msg-avatar">🤖</div>
+          <div class="msg-content">
+            <div class="msg-header">CropO Grounded Bot</div>
+            <div class="msg-body" id="welcome-msg-body">
+              Welcome to CropO AI! Please enter a <strong>Plot ID</strong> to connect and load live telemetry into the hot cache.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Suggestion Chips -->
+      <div class="quick-prompts" id="quick-prompts">
+        <button class="chip" data-query="What is the crop variety and plantation details for this plot?">🥭 Crop & Variety Info</button>
+        <button class="chip" data-query="What is the current soil moisture and irrigation advisory for my plot?">💧 Soil Moisture & Irrigation</button>
+        <button class="chip" data-query="What is the field health score and NDVI vigor for this plot?">📊 Field Health Score</button>
+        <button class="chip" data-query="What is the current farm weather and rainfall forecast?">🌦️ Weather & Rain Forecast</button>
+        <button class="chip" data-query="What is the stock price of Tesla?">❓ Out-of-domain test</button>
+      </div>
+
+      <!-- Chat Input Bar -->
+      <footer class="chat-input-wrapper">
+        <form id="chat-form" class="chat-form">
+          <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="Ask about this plot's soil moisture, irrigation needs, crop health, or weather..." 
+            autocomplete="off" 
+            required 
+          />
+          <button type="submit" id="send-btn" class="send-btn">
+            <span>Send</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </form>
+        <div class="input-disclaimer">
+          Responses are strictly grounded in offline pre-fetched Redis cache data for the active plot.
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="chat.js"></script>
+</body>
+</html>

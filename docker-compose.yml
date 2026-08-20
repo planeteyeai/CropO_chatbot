@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # FastAPI Decoupled Chatbot Backend
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cropo_chatbot_app
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_PROVIDER=mock
+      - LLM_API_KEY=
+      - LLM_MODEL=gpt-4o-mini
+      - CROP_API_BASE_URL=http://localhost:8000
+      - CROP_API_KEY=sample_crop_secret_key_12345
+      - ENABLE_EMBEDDING_ROUTING=false
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Redis Hot Cache Layer
+  redis:
+    image: redis:7-alpine
+    container_name: cropo_redis_cache
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
