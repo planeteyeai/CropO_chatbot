@@ -146,5 +146,82 @@ class RedisCacheClient:
             results.append(status_item)
         return results
 
+    async def delete_key(self, key: str) -> bool:
+        """Remove a single cache entry from Redis and in-memory fallback."""
+        deleted = False
+        if key in self._memory_cache:
+            del self._memory_cache[key]
+            deleted = True
+
+        if self._is_redis_available and self._client:
+            try:
+                removed = await self._client.delete(key)
+                deleted = deleted or bool(removed)
+            except Exception as exc:
+                logger.warning("redis_delete_failed", key=key, error=str(exc))
+
+        return deleted
+
+    async def clear_all_cache(self) -> Dict[str, int]:
+        """Clear all plot/domain cache keys (Redis + in-memory)."""
+        memory_cleared = len(self._memory_cache)
+        self._memory_cache.clear()
+        redis_deleted = 0
+
+        if self._is_redis_available and self._client:
+            try:
+                cursor = 0
+                while True:
+                    cursor, keys = await self._client.scan(cursor, match="data:*", count=200)
+                    if keys:
+                        redis_deleted += await self._client.delete(*keys)
+                    if cursor == 0:
+                        break
+            except Exception as exc:
+                logger.warning("redis_clear_all_failed", error=str(exc))
+
+        logger.info("cache_cleared", memory_entries=memory_cleared, redis_keys=redis_deleted)
+        return {"memory_entries_cleared": memory_cleared, "redis_keys_deleted": redis_deleted}
+
+    async def clear_plot_cache(self, plot_id: str) -> int:
+        """Delete all cached telemetry keys for a specific plot."""
+        from app.fetchers.plots_info import get_plot_info_cache_key
+        from app.fetchers.soil_irrigation import get_soil_cache_key
+        from app.fetchers.field_score import get_score_cache_key
+        from app.fetchers.cropo_weather import get_weather_cache_key
+        from app.fetchers.daily_report import get_daily_report_cache_key
+
+        clean_id = str(plot_id).strip()
+        keys = [
+            get_plot_info_cache_key(clean_id),
+            get_soil_cache_key(clean_id),
+            get_score_cache_key(clean_id),
+            get_weather_cache_key(clean_id),
+            get_daily_report_cache_key(clean_id),
+        ]
+
+        deleted = 0
+        for key in keys:
+            if await self.delete_key(key):
+                deleted += 1
+
+        logger.info("plot_cache_cleared", plot_id=clean_id, keys_deleted=deleted)
+        return deleted
+
+    async def append_snapshot(
+        self,
+        key: str,
+        snapshot: Dict[str, Any],
+        max_items: int,
+        ttl_seconds: int,
+    ) -> bool:
+        """Append a compact item onto a bounded JSON list (Redis or memory fallback)."""
+        existing = await self.get_json(key)
+        items: List[Any] = existing if isinstance(existing, list) else []
+        items.append(snapshot)
+        if max_items > 0:
+            items = items[-int(max_items) :]
+        return await self.set_json(key, items, ttl_seconds=ttl_seconds)
+
 
 redis_client = RedisCacheClient()

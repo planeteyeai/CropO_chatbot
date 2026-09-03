@@ -9,11 +9,54 @@ import structlog
 from fastapi import APIRouter, HTTPException
 from app.cache.redis_client import redis_client
 from app.config.api_registry import API_REGISTRY, get_api_by_name
+from app.config.settings import settings
+from app.llm.client import (
+    get_gemini_verification_status,
+    init_gemini_verification,
+    _resolve_gemini_api_key,
+)
 from app.scheduler.scheduler import _resolve_fetcher_callable
 
 logger = structlog.get_logger(__name__)
 
 debug_router = APIRouter(tags=["Debug"])
+
+
+@debug_router.post("/debug/cache/clear")
+async def clear_all_cache() -> Dict[str, Any]:
+    """Clear entire hot cache (Redis + in-memory) and reset active plot pool."""
+    from app.fetchers import ACTIVE_PLOT_IDS
+
+    stats = await redis_client.clear_all_cache()
+    ACTIVE_PLOT_IDS.clear()
+    return {
+        "status": "success",
+        "message": "All cache cleared. Reload a plot to fetch fresh live telemetry.",
+        **stats,
+    }
+
+
+@debug_router.get("/debug/gemini-key")
+async def check_gemini_key(refresh: bool = False) -> Dict[str, Any]:
+    """Test whether GEMINI_API_KEY works by sending a live 'hi, are you working?' request."""
+    if refresh:
+        working, message = await init_gemini_verification()
+    else:
+        cached_working, cached_message = get_gemini_verification_status()
+        if cached_working is not None:
+            working, message = cached_working, cached_message
+        else:
+            working, message = await init_gemini_verification()
+
+    api_key = _resolve_gemini_api_key(settings)
+    return {
+        "working": working,
+        "message": message,
+        "provider": settings.LLM_PROVIDER,
+        "model": settings.GEMINI_MODEL,
+        "key_configured": bool(api_key),
+        "key_preview": f"{api_key[:8]}..." if len(api_key) > 8 else ("(empty)" if not api_key else "(short key)"),
+    }
 
 
 @debug_router.get("/debug/cache")

@@ -43,7 +43,7 @@ async def fetch_score_for_plot(plot_id: str) -> Dict[str, Any]:
 
     logger.info("fetch_score_for_plot_started", plot_id=clean_id, url=url)
 
-    res = await async_fetch_with_retry(url=url, headers=headers, timeout=3.5, max_retries=1)
+    res = await async_fetch_with_retry(url=url, headers=headers, timeout=30.0, max_retries=2)
 
     if not isinstance(res, dict) or "field_score" not in res:
         existing = await redis_client.get_json(cache_key)
@@ -75,6 +75,12 @@ async def fetch_score_for_plot(plot_id: str) -> Dict[str, Any]:
         }
 
     await redis_client.set_json(cache_key, normalized, ttl_seconds=TTL_SECONDS)
+    from app.cache.history import record_plot_snapshot
+    await record_plot_snapshot(
+        clean_id,
+        "field_scores",
+        {"field_score_pct": normalized.get("field_score_pct")},
+    )
     logger.info("fetch_score_for_plot_completed", plot_id=clean_id, score=normalized.get("field_score_pct"))
     return normalized
 

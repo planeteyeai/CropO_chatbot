@@ -79,10 +79,6 @@ cropO-chatbot/
 │       ├── index.html           # Single-page test UI with Cache Status monitor
 │       ├── style.css            # Modern responsive styling
 │       └── chat.js              # SSE stream consumer & live token renderer
-├── tests/
-│   ├── test_fetchers.py         # Tests for all CropO live API fetchers
-│   ├── test_intent_router.py    # Tests for multi-domain routing & latency
-│   └── test_chat_endpoint.py    # Integration tests asserting zero external HTTP calls during /chat
 ├── .env.example
 ├── requirements.txt
 ├── Dockerfile
@@ -220,16 +216,6 @@ async def fetch_fertilizer_rates() -> bool:
 | `CROP_API_BASE_URL` | `http://localhost:8000` | Base URL for custom Crop Index API |
 | `CROP_API_KEY` | `sample_crop_secret_key_12345` | Auth key for Crop Index API |
 | `ENABLE_EMBEDDING_ROUTING` | `false` | Enable `sentence-transformers` router |
-
----
-
-## 🧪 Running the Test Suite
-
-Run the automated test suite covering fetcher normalization, stale-on-failure guarantees, intent routing speeds, and `/chat` SSE streaming:
-
-```bash
-pytest -v
-```
 
 ---
 

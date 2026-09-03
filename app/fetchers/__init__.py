@@ -48,10 +48,14 @@ def get_active_plot_ids() -> List[str]:
     return list(ACTIVE_PLOT_IDS)
 
 
-async def load_all_data_for_plot(plot_id: str) -> Dict[str, Any]:
+async def load_all_data_for_plot(plot_id: str, *, clear_cache_first: bool = False) -> Dict[str, Any]:
     """Concurrently pre-fetch all telemetry domains for a specific farmer/plot and hot-cache in Redis."""
     clean_id = str(plot_id).strip()
-    logger.info("loading_all_telemetry_for_plot", plot_id=clean_id)
+    logger.info("loading_all_telemetry_for_plot", plot_id=clean_id, clear_cache_first=clear_cache_first)
+
+    if clear_cache_first:
+        from app.cache.redis_client import redis_client
+        await redis_client.clear_plot_cache(clean_id)
 
     # Register plot in active monitoring pool so background scheduler keeps it fresh
     register_active_plot(clean_id)

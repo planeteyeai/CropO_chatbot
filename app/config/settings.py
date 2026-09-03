@@ -26,6 +26,12 @@ class Settings(BaseSettings):
         default=False, description="Enable embedding-based routing via sentence-transformers"
     )
 
+    # Conversation memory & trend history (bounded, cache-local)
+    CONVERSATION_MAX_MESSAGES: int = Field(default=20, description="Max messages retained per session")
+    CONVERSATION_TTL_SECONDS: int = Field(default=604800, description="Conversation memory TTL (7 days)")
+    HISTORY_MAX_ITEMS: int = Field(default=24, description="Max compact trend snapshots per plot/domain")
+    HISTORY_TTL_SECONDS: int = Field(default=604800, description="Trend snapshot TTL (7 days)")
+
     # CropO Live API settings
     CROPO_API_BASE_URL: str = Field(
         default="https://cropoappapis.up.railway.app",

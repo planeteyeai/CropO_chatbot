@@ -29,7 +29,7 @@ async def list_available_plots() -> Dict[str, Any]:
     """Retrieve all available plot IDs registered in the farm system."""
     try:
         plots = await get_available_plots_list()
-        print(f"\n📋 [PLOT DISCOVERY] Found {len(plots)} registered plots from Railway API: {plots[:10]}...", flush=True)
+        print(f"\n[PLOT DISCOVERY] Found {len(plots)} registered plots from Railway API: {plots[:10]}...", flush=True)
         return {
             "status": "success",
             "total_count": len(plots),
@@ -44,6 +44,48 @@ async def list_available_plots() -> Dict[str, Any]:
         }
 
 
+@plots_router.post("/refresh")
+async def refresh_plot_telemetry(request: LoadPlotRequest) -> Dict[str, Any]:
+    """Clear cached telemetry for a plot and re-fetch live data from CropO APIs."""
+    plot_id = request.plot_id.strip()
+    if not plot_id:
+        raise HTTPException(status_code=400, detail="plot_id cannot be empty")
+
+    print(f"\n[CACHE CLEAR + LIVE REFRESH] Plot #{plot_id}...", flush=True)
+
+    try:
+        from app.cache.redis_client import redis_client
+
+        keys_cleared = await redis_client.clear_plot_cache(plot_id)
+        start_time = time.perf_counter()
+        result = await load_all_data_for_plot(plot_id, clear_cache_first=False)
+        duration = time.perf_counter() - start_time
+
+        result["cache_keys_cleared"] = keys_cleared
+        result["refresh_mode"] = "live"
+        result["refresh_duration_sec"] = round(duration, 3)
+
+        info = result.get("info", {})
+        crop = info.get("crop_details", {})
+        soil = result.get("soil", {})
+        score = result.get("score", {})
+        report = result.get("daily_report", {})
+
+        print(
+            f"[LIVE REFRESH DONE] Plot #{plot_id} | "
+            f"Crop: {crop.get('crop_type')} | "
+            f"Moisture: {soil.get('latest_moisture_pct')}% | "
+            f"Score: {score.get('field_score_pct')}% | "
+            f"Layers: {report.get('layer_count', 0)}/8 | "
+            f"Time: {duration:.1f}s\n",
+            flush=True,
+        )
+        return result
+    except Exception as exc:
+        logger.error("refresh_plot_telemetry_failed", plot_id=plot_id, error=str(exc))
+        raise HTTPException(status_code=500, detail=f"Failed to refresh plot {plot_id}: {str(exc)}")
+
+
 @plots_router.post("/load") 
 async def load_plot_telemetry(request: LoadPlotRequest) -> Dict[str, Any]:
     """Pre-fetch and cache all telemetry for a specific plot in Redis hot cache."""
@@ -52,7 +94,7 @@ async def load_plot_telemetry(request: LoadPlotRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail="plot_id cannot be empty")
 
     t0 = time.perf_counter()
-    print(f"\n🔄 [PRE-FETCH TRIGGERED] Initializing live Railway API telemetry for Plot #{plot_id}...", flush=True)
+    print(f"\n[PRE-FETCH TRIGGERED] Initializing live Railway API telemetry for Plot #{plot_id}...", flush=True)
 
     try:
         start_time = time.perf_counter()
@@ -69,16 +111,16 @@ async def load_plot_telemetry(request: LoadPlotRequest) -> Dict[str, Any]:
 
         log_box = (
             f"\n======================================================================\n"
-            f"🌱 [PLOT TELEMETRY INITIALIZED & STORED IN REDIS]\n"
+            f"[PLOT TELEMETRY INITIALIZED & STORED IN REDIS]\n"
             f"----------------------------------------------------------------------\n"
-            f"📌 Plot ID          : #{plot_id}\n"
-            f"📥 Pre-fetched Feeds:\n"
-            f"   ├── 🌾 Plot Info   -> key: data:plot:{plot_id}:info ({crop.get('crop_type', 'Crop')} {crop.get('crop_variety', '')}, {info.get('area_acres')} acres)\n"
-            f"   ├── 💧 Soil & Rain -> key: data:plot:{plot_id}:soil (Moisture: {soil.get('latest_moisture_pct')}%, Rain: {soil.get('yesterday_rainfall_mm')}mm)\n"
-            f"   ├── 📊 Field Score -> key: data:plot:{plot_id}:score (NDVI: {score.get('field_score_pct')}%, Status: {score.get('health_status')})\n"
-            f"   ├── 🌦️ Farm Weather-> key: data:plot:{plot_id}:weather ({cur_weather.get('temperature_celsius')}°C, Rain: {cur_weather.get('rain_status')})\n"
-            f"   └── 📑 Daily Report-> key: data:plot:{plot_id}:daily_report (Status: {report.get('status', 'available')})\n"
-            f"⏱️  Total Pre-fetch Time: {duration:.3f}s\n"
+            f"Plot ID          : #{plot_id}\n"
+            f"Pre-fetched Feeds:\n"
+            f"   - Plot Info    -> data:plot:{plot_id}:info ({crop.get('crop_type', 'Crop')} {crop.get('crop_variety', '')}, {info.get('area_acres')} acres)\n"
+            f"   - Soil & Rain  -> data:plot:{plot_id}:soil (Moisture: {soil.get('latest_moisture_pct')}%, Rain: {soil.get('yesterday_rainfall_mm')}mm)\n"
+            f"   - Field Score  -> data:plot:{plot_id}:score (NDVI: {score.get('field_score_pct')}%, Status: {score.get('health_status')})\n"
+            f"   - Farm Weather -> data:plot:{plot_id}:weather ({cur_weather.get('temperature_celsius')}C, Rain: {cur_weather.get('rain_status')})\n"
+            f"   - Daily Report -> data:plot:{plot_id}:daily_report (Layers: {report.get('layer_count', 'N/A')}/8)\n"
+            f"Total Pre-fetch Time: {duration:.3f}s\n"
             f"======================================================================\n"
         )
         print(log_box, flush=True)
@@ -86,7 +128,7 @@ async def load_plot_telemetry(request: LoadPlotRequest) -> Dict[str, Any]:
         return result
     except Exception as exc:
         logger.error("load_plot_telemetry_failed", plot_id=plot_id, error=str(exc))
-        print(f"\n❌ [PRE-FETCH FAILED] Plot #{plot_id} - Error: {str(exc)}\n", flush=True)
+        print(f"\n[PRE-FETCH FAILED] Plot #{plot_id} - Error: {str(exc)}\n", flush=True)
         raise HTTPException(status_code=500, detail=f"Failed to load telemetry for plot {plot_id}: {str(exc)}")
 
 

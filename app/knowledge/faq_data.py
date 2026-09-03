@@ -1,0 +1,278 @@
+"""Multilingual offline FAQ corpus. No network, Redis, or Gemini required."""
+
+from typing import Any, Dict, List
+
+FAQ_ENTRIES: List[Dict[str, Any]] = [
+    {
+        "id": "what_is_ndvi",
+        "topics": ["ndvi", "crop_health"],
+        "questions": {
+            "en": ["what is ndvi", "what does ndvi mean", "explain ndvi"],
+            "hi": ["ndvi क्या है", "ndvi का मतलब क्या है"],
+            "mr": ["ndvi म्हणजे काय", "ndvi काय आहे"],
+            "kn": ["ndvi ಎಂದರೆ ಏನು", "ndvi ಏನು"],
+        },
+        "keywords": ["ndvi", "normalized difference vegetation"],
+        "answers": {
+            "en": "NDVI (Normalized Difference Vegetation Index) is a satellite measure of how green and dense the crop canopy is. Higher NDVI usually means stronger vegetation vigor. CropO uses it as part of field health scoring — it is not a live camera feed.",
+            "hi": "NDVI उपग्रह से फसल की हरियाली और घनत्व मापने वाला सूचकांक है। अधिक NDVI आमतौर पर बेहतर फसल जोम दिखाता है। यह कैमरा लाइव वीडियो नहीं है।",
+            "mr": "NDVI हे उपग्रहाद्वारे पिकाची हिरवळ आणि घनता मोजणारे माप आहे. जास्त NDVI सामान्यतः चांगला जोम दर्शवते. हे थेट कॅमेरा फीड नाही.",
+            "kn": "NDVI ಉಪಗ್ರಹದಿಂದ ಬೆಳೆಯ ಹಸಿರುತನ ಮತ್ತು ಸಾಂದ್ರತೆಯ ಸೂಚ್ಯಂಕ. ಹೆಚ್ಚಿನ NDVI ಸಾಮಾನ್ಯವಾಗಿ ಉತ್ತಮ ಬೆಳೆ ಚೈತನ್ಯ. ಇದು ಲೈವ್ ಕ್ಯಾಮೆರಾ ಅಲ್ಲ.",
+        },
+    },
+    {
+        "id": "what_is_ndwi",
+        "topics": ["ndwi", "soil"],
+        "questions": {
+            "en": ["what is ndwi", "what does ndwi mean"],
+            "hi": ["ndwi क्या है"],
+            "mr": ["ndwi म्हणजे काय"],
+            "kn": ["ndwi ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["ndwi", "normalized difference water"],
+        "answers": {
+            "en": "NDWI (Normalized Difference Water Index) highlights water content in vegetation or surface moisture from satellite bands. It complements soil-moisture sensors and NDVI; it is not the same as root-zone soil moisture percentage.",
+            "hi": "NDWI उपग्रह से वनस्पति या सतह की नमी का संकेत देता है। यह मिट्टी की जड़-क्षेत्र नमी प्रतिशत के बराबर नहीं है।",
+            "mr": "NDWI उपग्रहाद्वारे वनस्पती किंवा पृष्ठभागातील पाण्याचे संकेत देते. हे मुळांच्या भागातील ओलावा टक्केवारीसारखे नाही.",
+            "kn": "NDWI ಉಪಗ್ರಹದಿಂದ ಸಸ್ಯ ಅಥವಾ ಮೇಲ್ಮೈ ತೇವದ ಸೂಚನೆ. ಇದು ಬೇರಿನ ವಲಯದ ಮಣ್ಣಿನ ತೇವಾಂಶ ಶೇಕಡಾಕ್ಕೆ ಸಮನಲ್ಲ.",
+        },
+    },
+    {
+        "id": "what_is_soil_moisture",
+        "topics": ["soil"],
+        "questions": {
+            "en": ["what is soil moisture", "what does soil moisture mean"],
+            "hi": ["मिट्टी की नमी क्या है", "सॉइल मॉइस्चर क्या है"],
+            "mr": ["जमिनीतील ओलावा म्हणजे काय", "ओलावा म्हणजे काय"],
+            "kn": ["ಮಣ್ಣಿನ ತೇವಾಂಶ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["soil moisture"],
+        "answers": {
+            "en": "Soil moisture is the water held in the soil, especially the root zone. Farmers use it with rainfall, forecast, and crop water use (ET) to decide irrigation. A single percentage is not enough on its own.",
+            "hi": "मिट्टी की नमी जड़ क्षेत्र में मौजूद पानी है। सिंचाई तय करने के लिए नमी के साथ बारिश, पूर्वानुमान और फसल जल-उपयोग (ET) देखें।",
+            "mr": "जमिनीतील ओलावा म्हणजे मुळांच्या भागातील पाणी. सिंचन ठरवताना ओलावा, पाऊस, अंदाज आणि ET एकत्र पाहावे.",
+            "kn": "ಮಣ್ಣಿನ ತೇವಾಂಶ ಬೇರಿನ ವಲಯದ ನೀರು. ನೀರಾವರಿಗೆ ತೇವಾಂಶದೊಂದಿಗೆ ಮಳೆ, ಮುನ್ಸೂಚನೆ ಮತ್ತು ET ನೋಡಿ.",
+        },
+    },
+    {
+        "id": "what_is_water_uptake",
+        "topics": ["irrigation"],
+        "questions": {
+            "en": ["what is water uptake", "what does water uptake mean"],
+            "hi": ["वाटर अपटेक क्या है"],
+            "mr": ["वॉटर अपटेक म्हणजे काय"],
+            "kn": ["ವಾಟರ್ ಅಪ್ಟೇಕ್ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["water uptake"],
+        "answers": {
+            "en": "Water uptake describes how actively the crop is drawing water. Low uptake with dry soil suggests stress; low uptake with wet soil can mean roots are waterlogged or the crop is less active.",
+            "hi": "वाटर अपटेक बताता है कि फसल कितनी सक्रियता से पानी ले रही है। सूखी मिट्टी में कम अपटेक तनाव हो सकता है; गीली मिट्टी में कम अपटेक जड़ समस्या भी हो सकती है।",
+            "mr": "वॉटर अपटेक दाखवते की पीक किती सक्रियतेने पाणी घेत आहे. कोरड्या जमिनीत कमी अपटेक तणाव असू शकतो.",
+            "kn": "ವಾಟರ್ ಅಪ್ಟೇಕ್ ಬೆಳೆ ಎಷ್ಟು ಸಕ್ರಿಯವಾಗಿ ನೀರು ತೆಗೆದುಕೊಳ್ಳುತ್ತಿದೆ ಎಂಬುದು. ಒಣ ಮಣ್ಣಿನಲ್ಲಿ ಕಡಿಮೆ ಅಪ್ಟೇಕ್ ಒತ್ತಡವಾಗಿರಬಹುದು.",
+        },
+    },
+    {
+        "id": "what_is_et",
+        "topics": ["irrigation", "weather"],
+        "questions": {
+            "en": ["what is et", "what is eto", "what is evapotranspiration", "what does et mean"],
+            "hi": ["et क्या है", "evapotranspiration क्या है"],
+            "mr": ["et म्हणजे काय"],
+            "kn": ["et ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["evapotranspiration", "eto", "et0"],
+        "answers": {
+            "en": "ET (evapotranspiration) is water lost from soil plus crop transpiration, often in mm/day. High ET means the crop and soil are using water faster, so irrigation demand can rise if rain does not replace it.",
+            "hi": "ET (वाष्पोत्सर्जन) मिट्टी और पत्तों से होने वाला जल-ह्रास है, अक्सर मिमी/दिन में। अधिक ET का मतलब पानी जल्दी खर्च हो रहा है।",
+            "mr": "ET म्हणजे जमीन आणि पिकातून होणारे पाणी नुकसान (साधारण मिमी/दिवस). जास्त ET म्हणजे पाणी लवकर संपते.",
+            "kn": "ET ಮಣ್ಣು ಮತ್ತು ಬೆಳೆಯಿಂದ ನೀರು ನಷ್ಟ (ಸಾಮಾನ್ಯವಾಗಿ ಮಿಮೀ/ದಿನ). ಹೆಚ್ಚಿನ ET ಎಂದರೆ ನೀರು ಬೇಗ ಖರ್ಚಾಗುತ್ತದೆ.",
+        },
+    },
+    {
+        "id": "what_is_npk",
+        "topics": ["nutrient"],
+        "questions": {
+            "en": ["what is npk", "what does npk mean", "explain npk"],
+            "hi": ["npk क्या है", "npk का मतलब क्या है"],
+            "mr": ["npk म्हणजे काय"],
+            "kn": ["npk ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["npk"],
+        "answers": {
+            "en": "NPK is nitrogen (leaf growth), phosphorus (roots/flowers) and potassium (overall strength). CropO NPK layers estimate soil nutrition from available data — confirm with a soil test before heavy fertilizer use.",
+            "hi": "NPK नाइट्रोजन, फॉस्फोरस और पोटाश है। भारी खाद से पहले मिट्टी परीक्षण से पुष्टि करें।",
+            "mr": "NPK म्हणजे नायट्रोजन, फॉस्फरस आणि पोटॅशियम. जास्त खत देण्यापूर्वी माती परीक्षण करा.",
+            "kn": "NPK ಎಂದರೆ ಸಾರಜನಕ, ರಂಜಕ ಮತ್ತು ಪೊಟ್ಯಾಸಿಯಮ್. ಹೆಚ್ಚು ಗೊಬ್ಬರಕ್ಕೆ ಮುನ್ನ ಮಣ್ಣು ಪರೀಕ್ಷೆ ಮಾಡಿ.",
+        },
+    },
+    {
+        "id": "what_is_drip",
+        "topics": ["irrigation"],
+        "questions": {
+            "en": ["what is drip irrigation", "explain drip irrigation"],
+            "hi": ["ड्रिप सिंचाई क्या है"],
+            "mr": ["ठिबक सिंचन म्हणजे काय"],
+            "kn": ["ಹನಿ ನೀರಾವರಿ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["drip irrigation", "drip"],
+        "answers": {
+            "en": "Drip irrigation delivers water slowly near the roots. It saves water versus flood irrigation. Pause drip when soil is already saturated or rain is likely, to avoid root oxygen stress.",
+            "hi": "ड्रिप सिंचाई जड़ों के पास धीरे पानी देती है। मिट्टी पहले से गीली हो या बारिश आने वाली हो तो ड्रिप रोकें।",
+            "mr": "ठिबक सिंचन मुळांजवळ हळू पाणी देते. जमीन संतृप्त असेल किंवा पाऊस येणार असेल तर ठिबक थांबवा.",
+            "kn": "ಹನಿ ನೀರಾವರಿ ಬೇರಿನ ಬಳಿ ನಿಧಾನವಾಗಿ ನೀರು ನೀಡುತ್ತದೆ. ಮಣ್ಣು ತುಂಬಾ ತೇವವಾಗಿದ್ದರೆ ಅಥವಾ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದ್ದರೆ ನಿಲ್ಲಿಸಿ.",
+        },
+    },
+    {
+        "id": "what_is_field_score",
+        "topics": ["crop_health"],
+        "questions": {
+            "en": ["what is field score", "what does field score mean"],
+            "hi": ["फील्ड स्कोर क्या है"],
+            "mr": ["फील्ड स्कोअर म्हणजे काय"],
+            "kn": ["ಫೀಲ್ಡ್ ಸ್ಕೋರ್ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["field score"],
+        "answers": {
+            "en": "Field score is CropO's 0–100 crop-health rating, largely from satellite vegetation signals such as NDVI. 100 is peak vigor. A drop suggests stress — confirm on the ground; it is not a disease diagnosis by itself.",
+            "hi": "फील्ड स्कोर CropO का 0–100 फसल स्वास्थ्य अंक है, मुख्यतः उपग्रह NDVI से। गिरावट तनाव संकेत है, रोग की पक्की पहचान नहीं।",
+            "mr": "फील्ड स्कोअर CropO चा 0–100 पीक आरोग्य गुण आहे. घट म्हणजे तणावाचा इशारा; केवळ यावरून रोग निश्चित होत नाही.",
+            "kn": "ಫೀಲ್ಡ್ ಸ್ಕೋರ್ CropO ನ 0–100 ಬೆಳೆ ಆರೋಗ್ಯ ಅಂಕ. ಇಳಿಕೆ ಒತ್ತಡದ ಸೂಚನೆ; ರೋಗ ಖಚಿತಪಡಿಸಲು ಜಮೀನು ನೋಡಿ.",
+        },
+    },
+    {
+        "id": "what_is_crop_health",
+        "topics": ["crop_health"],
+        "questions": {
+            "en": ["what is crop health", "how is crop health measured"],
+            "hi": ["फसल स्वास्थ्य क्या है"],
+            "mr": ["पीक आरोग्य म्हणजे काय"],
+            "kn": ["ಬೆಳೆ ಆರೋಗ್ಯ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["crop health"],
+        "answers": {
+            "en": "Crop health in CropO combines canopy vigor (NDVI/field score), moisture, pests, and nutrients where data exists. Always treat satellite flags as inspection guides, not laboratory confirmation.",
+            "hi": "CropO में फसल स्वास्थ्य NDVI, नमी, कीट और पोषण डेटा को जोड़ता है। उपग्रह संकेत जाँच के लिए हैं, लैब पुष्टि नहीं।",
+            "mr": "CropO मध्ये पीक आरोग्य NDVI, ओलावा, कीड आणि अन्नद्रव्ये एकत्र पाहते. उपग्रह संकेत तपासणीसाठी आहेत.",
+            "kn": "CropO ನಲ್ಲಿ ಬೆಳೆ ಆರೋಗ್ಯ NDVI, ತೇವಾಂಶ, ಕೀಟ ಮತ್ತು ಪೋಷಕಾಂಶ ಡೇಟಾವನ್ನು ಸೇರಿಸುತ್ತದೆ. ಉಪಗ್ರಹ ಸೂಚನೆ ಪರಿಶೀಲನೆಗಾಗಿ.",
+        },
+    },
+    {
+        "id": "what_is_pest_detection",
+        "topics": ["pest"],
+        "questions": {
+            "en": ["what is pest detection", "how does pest detection work"],
+            "hi": ["पेस्ट डिटेक्शन क्या है"],
+            "mr": ["कीड शोध म्हणजे काय"],
+            "kn": ["ಕೀಟ ಪತ್ತೆ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["pest detection", "pest"],
+        "answers": {
+            "en": "Pest detection estimates how many acres of your field show chewing, sucking, fungi, wilt, or soil-borne signatures. Those acres flag where to scout. They do not replace walking the field or identifying the exact insect.",
+            "hi": "कीट परत बताती है कि खेत के कितने एकड़ में चबाने/चूसने/फफूंद के संकेत हैं। यह स्काउटिंग के लिए है, कीट की पक्की पहचान नहीं।",
+            "mr": "कीड थर शेतातील किती एकर क्षेत्र बाधित दिसते ते दाखवतो. शेतात जाऊन तपासणे आवश्यक आहे.",
+            "kn": "ಕೀಟ ಪದರ ನಿಮ್ಮ ಜಮೀನಿನ ಎಷ್ಟು ಎಕರೆಯಲ್ಲಿ ಸಹಿ ಕಾಣುತ್ತದೆ ಎಂಬುದನ್ನು ತೋರಿಸುತ್ತದೆ. ಜಮೀನಿನಲ್ಲಿ ನೋಡಿ ಖಚಿತಪಡಿಸಿ.",
+        },
+    },
+    {
+        "id": "what_is_satellite_monitoring",
+        "topics": ["crop_health"],
+        "questions": {
+            "en": ["what is satellite monitoring", "how does satellite monitoring work"],
+            "hi": ["सैटेलाइट मॉनिटरिंग क्या है"],
+            "mr": ["सॅटेलाइट मॉनिटरिंग म्हणजे काय"],
+            "kn": ["ಉಪಗ್ರಹ ನಿಗಾ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["satellite monitoring", "satellite"],
+        "answers": {
+            "en": "Satellite monitoring uses periodic Earth-observation images (not every minute). Cloud, revisit time, and processing delay mean values can be a few days old. CropO caches the latest processed layers for chat.",
+            "hi": "उपग्रह निगरानी समय-समय पर ली गई तस्वीरों पर आधारित है, हर मिनट लाइव नहीं। बादल और प्रोसेसिंग से डेटा कुछ दिन पुराना हो सकता है।",
+            "mr": "उपग्रह निरीक्षण ठराविक कालावधीच्या प्रतिमा वापरते, दर मिनिटाला लाइव्ह नाही. डेटा काही दिवस जुना असू शकतो.",
+            "kn": "ಉಪಗ್ರಹ ನಿಗಾ ನಿಯತಕಾಲಿಕ ಚಿತ್ರಗಳನ್ನು ಬಳಸುತ್ತದೆ, ಪ್ರತಿ ನಿಮಿಷ ಲೈವ್ ಅಲ್ಲ. ಡೇಟಾ ಕೆಲವು ದಿನ ಹಳೆಯದಾಗಿರಬಹುದು.",
+        },
+    },
+    {
+        "id": "what_is_weather_forecasting",
+        "topics": ["weather", "forecast"],
+        "questions": {
+            "en": ["what is weather forecasting", "how does farm weather forecast work"],
+            "hi": ["मौसम पूर्वानुमान क्या है"],
+            "mr": ["हवामान अंदाज म्हणजे काय"],
+            "kn": ["ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ ಎಂದರೆ ಏನು"],
+        },
+        "keywords": ["weather forecasting", "forecast"],
+        "answers": {
+            "en": "Farm weather forecasts estimate temperature, rain chance, and related conditions for coming days. They are probabilities, not guarantees. Combine them with current soil moisture before irrigating.",
+            "hi": "खेत का मौसम पूर्वानुमान तापमान और बारिश की संभावना बताता है — यह गारंटी नहीं है। सिंचाई से पहले मिट्टी की नमी भी देखें।",
+            "mr": "हवामान अंदाज तापमान व पावसाची शक्यता सांगतो, हमी नाही. सिंचनापूर्वी जमिनीतील ओलावाही पाहा.",
+            "kn": "ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ ತಾಪಮಾನ ಮತ್ತು ಮಳೆ ಸಾಧ್ಯತೆ. ಇದು ಖಾತರಿ ಅಲ್ಲ. ನೀರಾವರಿಗೆ ಮುನ್ನ ತೇವಾಂಶ ನೋಡಿ.",
+        },
+    },
+    {
+        "id": "how_cropo_usage",
+        "topics": ["cropo"],
+        "questions": {
+            "en": ["how does cropo work", "how to use cropo chatbot", "what can cropo answer", "how does asko work", "what is asko", "who is asko"],
+            "hi": ["cropo कैसे काम करता है", "cropo चैटबॉट कैसे उपयोग करें", "asko क्या है", "asko कैसे काम करता है"],
+            "mr": ["cropo कसे काम करते", "asko काय आहे"],
+            "kn": ["cropo ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ", "asko ಯಾರು"],
+        },
+        "keywords": ["cropo", "asko", "how to use"],
+        "answers": {
+            "en": "AskO is the farm chatbot in the CropO app. It answers from pre-fetched farm cache (plots, soil, weather, field score, daily satellite layers), plus offline FAQs. Select a plot first. Chat does not call live CropO APIs on every question — data is refreshed in the background.",
+            "hi": "AskO CropO ऐप का कृषि चैटबॉट है। यह प्लॉट कैश (मिट्टी, मौसम, स्कोर, सैटेलाइट लेयर) और ऑफ़लाइन FAQ से जवाब देता है। पहले प्लॉट चुनें। हर प्रश्न पर लाइव API नहीं चलता।",
+            "mr": "AskO हे CropO अॅपमधील शेती चॅटबॉट आहे. ते प्री-फेच कॅश आणि ऑफलाइन FAQ वरून उत्तर देते. आधी प्लॉट निवडा. प्रत्येक प्रश्नावर लाइव्ह API होत नाही.",
+            "kn": "AskO CropO ಅಪ್‌ನ ಕೃಷಿ ಚಾಟ್‌ಬಾಟ್. ಪೂರ್ವ-ಸಂಗ್ರಹ ಕ್ಯಾಶ್ ಮತ್ತು ಆಫ್‌ಲೈನ್ FAQ ನಿಂದ ಉತ್ತರಿಸುತ್ತದೆ. ಮೊದಲು ಪ್ಲಾಟ್ ಆಯ್ಕೆಮಾಡಿ.",
+        },
+    },
+    {
+        "id": "what_is_data_freshness",
+        "topics": ["freshness"],
+        "questions": {
+            "en": ["what is data freshness", "is the data live", "how fresh is the data"],
+            "hi": ["डेटा कितना ताज़ा है", "क्या डेटा लाइव है"],
+            "mr": ["डेटा किती ताजा आहे", "डेटा लाइव्ह आहे का"],
+            "kn": ["ಡೇಟಾ ಎಷ್ಟು ತಾಜಾ", "ಡೇಟಾ ಲೈವ್ ಏ"],
+        },
+        "keywords": ["data freshness", "live data", "cached"],
+        "answers": {
+            "en": "Chat answers use cached farm data, not a brand-new API call on each question. Weather refreshes often; satellite layers refresh less often. If data is aging or stale, AskO will say so rather than calling it live.",
+            "hi": "चैट कैश किए डेटा से जवाब देता है, हर प्रश्न पर नई API कॉल नहीं। पुराना डेटा होने पर AskO उसे लाइव नहीं कहेगा।",
+            "mr": "चॅट कॅश केलेल्या डेटाने उत्तर देते. जुना डेटा असेल तर तो लाइव्ह म्हटला जाणार नाही.",
+            "kn": "ಚಾಟ್ ಕ್ಯಾಶ್ ಡೇಟಾದಿಂದ ಉತ್ತರಿಸುತ್ತದೆ. ಹಳೆಯ ಡೇಟಾವನ್ನು ಲೈವ್ ಎಂದು ಹೇಳುವುದಿಲ್ಲ.",
+        },
+    },
+    {
+        "id": "what_if_missing_data",
+        "topics": ["missing"],
+        "questions": {
+            "en": ["what if data is missing", "why is data unavailable", "missing data"],
+            "hi": ["डेटा उपलब्ध नहीं है तो क्या", "डेटा गायब क्यों है"],
+            "mr": ["डेटा नसेल तर काय"],
+            "kn": ["ಡೇಟಾ ಇಲ್ಲದಿದ್ದರೆ ಏನು"],
+        },
+        "keywords": ["missing data", "unavailable"],
+        "answers": {
+            "en": "If a layer or sensor feed is missing, AskO will not invent numbers. Reload the plot to refresh cache, or ask a general agriculture question. Recommendations stay conservative when critical data is missing.",
+            "hi": "डेटा न हो तो AskO संख्या नहीं गढ़ेगा। प्लॉट दोबारा लोड करें। ज़रूरी डेटा न हो तो सलाह सतर्क रहेगी।",
+            "mr": "डेटा नसेल तर AskO आकडे बनवणार नाही. प्लॉट पुन्हा लोड करा. महत्त्वाचा डेटा नसेल तर सल्ला सावध असेल.",
+            "kn": "ಡೇಟಾ ಇಲ್ಲದಿದ್ದರೆ AskO ಸಂಖ್ಯೆ ಕಲ್ಪಿಸುವುದಿಲ್ಲ. ಪ್ಲಾಟ್ ಮತ್ತೆ ಲೋಡ್ ಮಾಡಿ. ಮುಖ್ಯ ಡೇಟಾ ಇಲ್ಲದಿದ್ದರೆ ಸಲಹೆ ಜಾಗರೂಕವಾಗಿರುತ್ತದೆ.",
+        },
+    },
+    {
+        "id": "how_plot_selection",
+        "topics": ["plot_info"],
+        "questions": {
+            "en": ["how do i select a plot", "how to choose plot", "plot selection"],
+            "hi": ["प्लॉट कैसे चुनें"],
+            "mr": ["प्लॉट कसा निवडावा"],
+            "kn": ["ಪ್ಲಾಟ್ ಹೇಗೆ ಆಯ್ಕೆ ಮಾಡುವುದು"],
+        },
+        "keywords": ["plot selection", "select a plot", "choose plot"],
+        "answers": {
+            "en": "Select your plot in the CropO UI first. That loads plot info, soil, weather, field score, and daily-report layers into cache. Chat then answers for that plot only.",
+            "hi": "पहले UI में अपना प्लॉट चुनें। इससे डेटा कैश में आता है और चैट उसी प्लॉट के बारे में जवाब देता है।",
+            "mr": "आधी UI मध्ये प्लॉट निवडा. डेटा कॅशमध्ये येतो आणि चॅट त्या प्लॉटचे उत्तर देते.",
+            "kn": "ಮೊದಲು UI ನಲ್ಲಿ ಪ್ಲಾಟ್ ಆಯ್ಕೆಮಾಡಿ. ಡೇಟಾ ಕ್ಯಾಶ್‌ಗೆ ಬಂದ ನಂತರ ಚಾಟ್ ಆ ಪ್ಲಾಟ್‌ಗೆ ಉತ್ತರಿಸುತ್ತದೆ.",
+        },
+    },
+]

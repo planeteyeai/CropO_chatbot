@@ -109,6 +109,17 @@ async def fetch_weather_for_plot(
     await redis_client.set_json(cache_key, normalized, ttl_seconds=TTL_SECONDS)
     # Also update global weather key
     await redis_client.set_json(CACHE_KEY, normalized, ttl_seconds=TTL_SECONDS)
+    if plot_id:
+        from app.cache.history import record_plot_snapshot
+        current = normalized.get("current") if isinstance(normalized.get("current"), dict) else {}
+        await record_plot_snapshot(
+            plot_id,
+            "cropo_weather",
+            {
+                "temperature_celsius": current.get("temperature_celsius"),
+                "rainfall_probability_pct": current.get("rainfall_probability_pct"),
+            },
+        )
     return normalized
 
 

@@ -16,6 +16,7 @@ from app.api.plots import plots_router
 from app.cache.redis_client import redis_client
 from app.config.settings import settings
 from app.scheduler.scheduler import start_scheduler, stop_scheduler, warmup_all_fetchers
+from app.llm.client import get_llm_client, get_provider_label, init_gemini_verification
 
 # Configure structured logging
 structlog.configure(
@@ -40,9 +41,18 @@ async def lifespan(app: FastAPI):
     logger.info("executing_startup_warmup")
     await warmup_all_fetchers()
 
-    # 3. Start background APScheduler for recurring independent fetch intervals
+    # 3. Verify Gemini API key with a live probe (no prefix/pattern checks)
+    gemini_ok, gemini_msg = await init_gemini_verification()
+    print(
+        f"\n[STARTUP] Gemini key probe: {'OK' if gemini_ok else 'FAILED'} — {gemini_msg}\n",
+        flush=True,
+    )
+
+    # 4. Start background APScheduler for recurring independent fetch intervals
     start_scheduler()
-    logger.info("app_startup_ready_to_serve")
+    llm_backend = get_provider_label(get_llm_client())
+    logger.info("app_startup_ready_to_serve", llm_backend=llm_backend, gemini_probe=gemini_msg)
+    print(f"[STARTUP] Active LLM backend: {llm_backend}\n", flush=True)
 
     yield
 
@@ -54,8 +64,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="CropO Chatbot Backend",
-    description="FastAPI chatbot with offline scheduled data pre-fetching in Redis and zero-external-call online retrieval",
+    title="AskO Chatbot Backend",
+    description="AskO FastAPI chatbot with offline scheduled data pre-fetching in Redis and zero-external-call online retrieval",
     version="1.0.0",
     lifespan=lifespan,
 )
